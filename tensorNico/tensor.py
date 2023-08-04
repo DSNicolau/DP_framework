@@ -94,7 +94,6 @@ class Tensor:
         self.data[indices] = value
 
     def _broadcastable(self, other):
-        # Determine if self and other are broadcastable
         self_shape = self.shape
         other_shape = other.shape
 
@@ -116,7 +115,6 @@ class Tensor:
         return tuple(broadcastable_shape)
     
     def _broadcast(self, other):
-        # Broadcast tensors to a common shape
         broadcast_shape = self._broadcastable(other)
 
         if broadcast_shape is None:
@@ -141,6 +139,9 @@ class Tensor:
             return Tensor(self_broadcast + other_broadcast)
         else:
             return Tensor(self.data + other)
+    
+    def sum(self):
+        return np.sum(self.data)
 
     def __sub__(self, other):
         if isinstance(other, Tensor):
@@ -162,15 +163,6 @@ class Tensor:
             return Tensor(self_broadcast / other_broadcast)
         else:
             return Tensor(self.data / other)
-
-    def relu(self):
-        return Tensor(np.maximum(self.data, 0))
-
-    def sigmoid(self):
-        return Tensor(1 / (1 + np.exp(-self.data)))
-
-    def tanh(self):
-        return Tensor(np.tanh(self.data))
     
     def exp(self):
         return Tensor(np.exp(self.data))
