@@ -72,17 +72,16 @@ class Tensor:
 
         Returns:
             Tensor: New Tensor instance containing the selected elements.
+        
+        Note: 
+            Views minimize unnecessary memory allocation and data copying and can lead to faster
+            execution of operations since they operate directly on the underlying data without additional copying.
+            Returning Tensor(self.data[indices], dtype=self.data.dtype) instead of self.data[indices]
+            uses views, which is way more efficient since it takes advantage of Numpy's memory-efficient slicing methods.
+            However, changes made to sliced tensors or copies will affect the original tensor. This is due to the nature of views.
+            To prevent this behavior, a copy-on-write mechanism is consider. 
         """
         return self.data[indices]
-        """
-        Views minimize unnecessary memory allocation and data copying and can lead to faster
-        execution of operations since they operate directly on the underlying data without additional copying.
-        Returning Tensor(self.data[indices], dtype=self.data.dtype) instead of self.data[indices]
-        uses views, which is way more efficient since it takes advantage of Numpy's memory-efficient slicing methods.
-        However, changes made to sliced tensors or copies will affect the original tensor. This is due to the nature of views.
-        To prevent this behavior, a copy-on-write mechanism is consider. 
-        """
-
 
     def __setitem__(self, indices, value):
         """
@@ -94,197 +93,134 @@ class Tensor:
         """
         self.data[indices] = value
 
+    def _broadcastable(self, other):
+        # Determine if self and other are broadcastable
+        self_shape = self.shape
+        other_shape = other.shape
+
+        max_dims = max(len(self_shape), len(other_shape))
+        self_pad = max_dims - len(self_shape)
+        other_pad = max_dims - len(other_shape)
+
+        self_shape = (1,) * self_pad + self_shape
+        other_shape = (1,) * other_pad + other_shape
+
+        broadcastable_shape = []
+
+        for s_dim, o_dim in zip(self_shape, other_shape):
+            if s_dim == 1 or o_dim == 1 or s_dim == o_dim:
+                broadcastable_shape.append(max(s_dim, o_dim))
+            else:
+                return None
+
+        return tuple(broadcastable_shape)
+    
+    def _broadcast(self, other):
+        # Broadcast tensors to a common shape
+        broadcast_shape = self._broadcastable(other)
+
+        if broadcast_shape is None:
+            raise ValueError("Broadcasting dimensions are not compatible.")
+
+        self_broadcast = self.data
+        other_broadcast = other.data
+
+        for i in range(len(self.shape)):
+            if self.shape[i] < broadcast_shape[i]:
+                self_broadcast = np.expand_dims(self_broadcast, axis=i)
+            if other.shape[i] < broadcast_shape[i]:
+                other_broadcast = np.expand_dims(other_broadcast, axis=i)
+
+        return self_broadcast, other_broadcast
+
+
+
     def __add__(self, other):
-        """
-        Perform element-wise addition with another tensor or scalar value.
-
-        Args:
-            other (Tensor or scalar): Another tensor or scalar to add element-wise.
-
-        Returns:
-            Tensor: New Tensor instance containing the result of the addition.
-        """
         if isinstance(other, Tensor):
-            return Tensor(self.data + other.data)
+            self_broadcast, other_broadcast = self._broadcast(other)
+            return Tensor(self_broadcast + other_broadcast)
         else:
             return Tensor(self.data + other)
 
     def __sub__(self, other):
-        """
-        Perform element-wise subtraction with another tensor or scalar value.
-
-        Args:
-            other (Tensor or scalar): Another tensor or scalar to subtract element-wise.
-
-        Returns:
-            Tensor: New Tensor instance containing the result of the subtraction.
-        """
         if isinstance(other, Tensor):
-            return Tensor(self.data - other.data)
+            self_broadcast, other_broadcast = self._broadcast(other)
+            return Tensor(self_broadcast - other_broadcast)
         else:
             return Tensor(self.data - other)
 
     def __mul__(self, other):
-        """
-        Perform element-wise multiplication with another tensor or scalar value.
-
-        Args:
-            other (Tensor or scalar): Another tensor or scalar to multiply element-wise.
-
-        Returns:
-            Tensor: New Tensor instance containing the result of the multiplication.
-        """
         if isinstance(other, Tensor):
-            return Tensor(self.data * other.data)
+            self_broadcast, other_broadcast = self._broadcast(other)
+            return Tensor(self_broadcast * other_broadcast)
         else:
             return Tensor(self.data * other)
 
     def __truediv__(self, other):
-        """
-        Perform element-wise division with another tensor or scalar value.
-
-        Args:
-            other (Tensor or scalar): Another tensor or scalar to divide element-wise.
-
-        Returns:
-            Tensor: New Tensor instance containing the result of the division.
-        """
         if isinstance(other, Tensor):
-            return Tensor(self.data / other.data)
+            self_broadcast, other_broadcast = self._broadcast(other)
+            return Tensor(self_broadcast / other_broadcast)
         else:
             return Tensor(self.data / other)
 
     def relu(self):
-        """
-        Apply the Rectified Linear Unit (ReLU) activation function element-wise.
-
-        Returns:
-            Tensor: New Tensor instance with ReLU applied element-wise.
-        """
         return Tensor(np.maximum(self.data, 0))
 
     def sigmoid(self):
-        """
-        Apply the sigmoid activation function element-wise.
-
-        Returns:
-            Tensor: New Tensor instance with sigmoid applied element-wise.
-        """
         return Tensor(1 / (1 + np.exp(-self.data)))
 
     def tanh(self):
-        """
-        Apply the hyperbolic tangent (tanh) activation function element-wise.
-
-        Returns:
-            Tensor: New Tensor instance with tanh applied element-wise.
-        """
         return Tensor(np.tanh(self.data))
     
     def exp(self):
-        """
-        Compute the element-wise exponentiation of the tensor.
-
-        Returns:
-            Tensor: New Tensor instance with exponentiation applied element-wise.
-        """
         return Tensor(np.exp(self.data))
 
     def log(self):
-        """
-        Compute the element-wise natural logarithm of the tensor.
-
-        Returns:
-            Tensor: New Tensor instance with logarithm applied element-wise.
-        Note:
-            Be cautious when using this function with non-positive values.
-            np.finfo(self.dtype).tiny is used to retrieve the smallest positive normalized number representable by the tensor's data type.
-            This value is used to replace any non-positive values before applying the logarithm operation.
-        """
         if np.any(self.data <= 0):
             print("Warning: Logarithm operation encountered non-positive values. Results may be invalid.")
         return Tensor(np.log(np.maximum(self.data, np.finfo(self.dtype).tiny)))
     
-    def __eq__(self, other):
-        """
-        Perform element-wise equality comparison with another tensor or value.
-
-        Args:
-            other (Tensor or value): Another tensor or value to compare element-wise.
-
-        Returns:
-            Tensor: New Tensor instance containing boolean values indicating equality.
-        """
+    def dot(self, other):
         if isinstance(other, Tensor):
-            return Tensor(self.data == other.data)
+            result = np.dot(self.data, other.data)
+            return Tensor(result)
+        else:
+            raise ValueError("Unsupported data type for matrix multiplication")
+
+    def __eq__(self, other):
+        if isinstance(other, Tensor):
+            self_broadcast, other_broadcast = self._broadcast(other)
+            return Tensor(self_broadcast == other_broadcast)
         else:
             return Tensor(self.data == other)
 
     def __lt__(self, other):
-        """
-        Perform element-wise less-than comparison with another tensor or value.
-
-        Args:
-            other (Tensor or value): Another tensor or value to compare element-wise.
-
-        Returns:
-            Tensor: New Tensor instance containing boolean values indicating less-than comparison.
-        """
         if isinstance(other, Tensor):
-            return Tensor(self.data < other.data)
+            self_broadcast, other_broadcast = self._broadcast(other)
+            return Tensor(self_broadcast < other_broadcast)
         else:
             return Tensor(self.data < other)
 
     def __le__(self, other):
-        """
-        Perform element-wise less-than or equal-to comparison with another tensor or value.
-
-        Args:
-            other (Tensor or value): Another tensor or value to compare element-wise.
-
-        Returns:
-            Tensor: New Tensor instance containing boolean values indicating less-than or equal-to comparison.
-        """
         if isinstance(other, Tensor):
-            return Tensor(self.data <= other.data)
+            self_broadcast, other_broadcast = self._broadcast(other)
+            return Tensor(self_broadcast <= other_broadcast)
         else:
             return Tensor(self.data <= other)
 
     def __gt__(self, other):
-        """
-        Perform element-wise greater-than comparison with another tensor or value.
-
-        Args:
-            other (Tensor or value): Another tensor or value to compare element-wise.
-
-        Returns:
-            Tensor: New Tensor instance containing boolean values indicating greater-than comparison.
-        """
         if isinstance(other, Tensor):
-            return Tensor(self.data > other.data)
+            self_broadcast, other_broadcast = self._broadcast(other)
+            return Tensor(self_broadcast > other_broadcast)
         else:
             return Tensor(self.data > other)
 
     def __ge__(self, other):
-        """
-        Perform element-wise greater-than or equal-to comparison with another tensor or value.
-
-        Args:
-            other (Tensor or value): Another tensor or value to compare element-wise.
-
-        Returns:
-            Tensor: New Tensor instance containing boolean values indicating greater-than or equal-to comparison.
-        """
         if isinstance(other, Tensor):
-            return Tensor(self.data >= other.data)
+            self_broadcast, other_broadcast = self._broadcast(other)
+            return Tensor(self_broadcast >= other_broadcast)
         else:
             return Tensor(self.data >= other)
 
     def __str__(self):
-        """
-        Get a string representation of the tensor.
-
-        Returns:
-            str: A human-readable string representing the tensor's data, shape, and data type.
-        """
         return f"Tensor(data={self.data}, shape={self.shape}, dtype={self.dtype})"
