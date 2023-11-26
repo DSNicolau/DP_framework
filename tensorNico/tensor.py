@@ -44,7 +44,7 @@ class Tensor:
         - Be cautious when using the `log` function, as it handles non-positive values gracefully but may produce
           unexpected results due to the logarithm of zero or negative values.
     """
-    def __init__(self, data, dtype=np.float32):
+    def __init__(self: 'Tensor', data: list or np.ndarray, dtype: np.dtype = np.float32)-> None:
         """
         Initialize a new Tensor instance.
 
@@ -63,7 +63,7 @@ class Tensor:
         self.shape = data.shape
         self.dtype = data.dtype
 
-    def __getitem__(self, indices):
+    def __getitem__(self: 'Tensor', indices: tuple) -> 'Tensor':
         """
         Enable indexing and slicing of the tensor.
 
@@ -83,7 +83,7 @@ class Tensor:
         """
         return self.data[indices]
 
-    def __setitem__(self, indices, value):
+    def __setitem__(self: 'Tensor', indices: tuple, value: int or float) -> None:
         """
         Modify tensor values using indexing.
 
@@ -93,7 +93,7 @@ class Tensor:
         """
         self.data[indices] = value
 
-    def _broadcastable(self, other):
+    def _broadcastable(self: 'Tensor', other: 'Tensor') -> tuple[int, ...]: 
         self_shape = self.shape
         other_shape = other.shape
 
@@ -114,7 +114,7 @@ class Tensor:
 
         return tuple(broadcastable_shape)
     
-    def _broadcast(self, other):
+    def _broadcast(self: 'Tensor', other: 'Tensor') -> tuple['Tensor', 'Tensor']:
         broadcast_shape = self._broadcastable(other)
 
         if broadcast_shape is None:
@@ -133,46 +133,46 @@ class Tensor:
 
 
 
-    def __add__(self, other):
+    def __add__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         if isinstance(other, Tensor):
             self_broadcast, other_broadcast = self._broadcast(other)
             return Tensor(self_broadcast + other_broadcast)
         else:
             return Tensor(self.data + other)
     
-    def sum(self):
+    def sum(self: 'Tensor') -> int or float:
         return np.sum(self.data)
 
-    def __sub__(self, other):
+    def __sub__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         if isinstance(other, Tensor):
             self_broadcast, other_broadcast = self._broadcast(other)
             return Tensor(self_broadcast - other_broadcast)
         else:
             return Tensor(self.data - other)
 
-    def __mul__(self, other):
+    def __mul__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         if isinstance(other, Tensor):
             self_broadcast, other_broadcast = self._broadcast(other)
             return Tensor(self_broadcast * other_broadcast)
         else:
             return Tensor(self.data * other)
 
-    def __truediv__(self, other):
+    def __truediv__(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         if isinstance(other, Tensor):
             self_broadcast, other_broadcast = self._broadcast(other)
             return Tensor(self_broadcast / other_broadcast)
         else:
             return Tensor(self.data / other)
     
-    def exp(self):
+    def exp(self: 'Tensor') -> 'Tensor':
         return Tensor(np.exp(self.data))
 
-    def log(self):
+    def log(self: 'Tensor') -> 'Tensor':
         if np.any(self.data <= 0):
             print("Warning: Logarithm operation found non-positive values. Results may be invalid.")
         return Tensor(np.log(np.maximum(self.data, np.finfo(self.dtype).tiny)))
     
-    def dot(self, other):
+    def dot(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         if isinstance(other, Tensor):
             result = np.dot(self.data, other.data)
             return Tensor(result)
@@ -180,47 +180,54 @@ class Tensor:
             raise ValueError("Unsupported data type for matrix multiplication")
         
 
-    def transpose(self):
+    def transpose(self: 'Tensor') -> 'Tensor':
         if len(self.shape) < 2:
             return self
 
         transposed_data = np.transpose(self.data)
         return Tensor(transposed_data, dtype=self.dtype)
+    
+    def reshape(self: 'Tensor', new_shape: tuple) -> 'Tensor':
+        if np.prod(self.shape) != np.prod(new_shape):
+            raise ValueError("Invalid reshape dimensions")
 
-    def __eq__(self, other):
+        reshaped_data = np.reshape(self.data, new_shape)
+        return Tensor(reshaped_data, dtype=self.dtype)
+
+    def __eq__(self: 'Tensor', other: any) -> 'Tensor':
         if isinstance(other, Tensor):
             self_broadcast, other_broadcast = self._broadcast(other)
             return Tensor(self_broadcast == other_broadcast)
         else:
             return Tensor(self.data == other)
 
-    def __lt__(self, other):
+    def __lt__(self: 'Tensor', other: any) -> 'Tensor':
         if isinstance(other, Tensor):
             self_broadcast, other_broadcast = self._broadcast(other)
             return Tensor(self_broadcast < other_broadcast)
         else:
             return Tensor(self.data < other)
 
-    def __le__(self, other):
+    def __le__(self: 'Tensor', other: any) -> 'Tensor':
         if isinstance(other, Tensor):
             self_broadcast, other_broadcast = self._broadcast(other)
             return Tensor(self_broadcast <= other_broadcast)
         else:
             return Tensor(self.data <= other)
 
-    def __gt__(self, other):
+    def __gt__(self: 'Tensor', other: any) -> 'Tensor':
         if isinstance(other, Tensor):
             self_broadcast, other_broadcast = self._broadcast(other)
             return Tensor(self_broadcast > other_broadcast)
         else:
             return Tensor(self.data > other)
 
-    def __ge__(self, other):
+    def __ge__(self: 'Tensor', other: any) -> 'Tensor':
         if isinstance(other, Tensor):
             self_broadcast, other_broadcast = self._broadcast(other)
             return Tensor(self_broadcast >= other_broadcast)
         else:
             return Tensor(self.data >= other)
 
-    def __str__(self):
+    def __str__(self: 'Tensor') -> str:
         return f"Tensor(data={self.data}, shape={self.shape}, dtype={self.dtype})"
