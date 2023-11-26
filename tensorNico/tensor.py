@@ -166,6 +166,15 @@ class Tensor:
     
     def exp(self: 'Tensor') -> 'Tensor':
         return Tensor(np.exp(self.data))
+    
+    def pow(self: 'Tensor', exponent: int or float or 'Tensor') -> 'Tensor':
+        if isinstance(exponent, Tensor):
+            broadcast_shape = self._broadcastable(exponent)
+            if broadcast_shape is None:
+                raise ValueError("Exponent dimensions are not compatible with tensor.")
+            return Tensor(np.power(self.data, exponent.data))
+        else:
+            return Tensor(np.power(self.data, exponent))
 
     def log(self: 'Tensor') -> 'Tensor':
         if np.any(self.data <= 0):
