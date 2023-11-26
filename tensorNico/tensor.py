@@ -169,7 +169,7 @@ class Tensor:
 
     def log(self):
         if np.any(self.data <= 0):
-            print("Warning: Logarithm operation encountered non-positive values. Results may be invalid.")
+            print("Warning: Logarithm operation found non-positive values. Results may be invalid.")
         return Tensor(np.log(np.maximum(self.data, np.finfo(self.dtype).tiny)))
     
     def dot(self, other):
@@ -178,6 +178,14 @@ class Tensor:
             return Tensor(result)
         else:
             raise ValueError("Unsupported data type for matrix multiplication")
+        
+
+    def transpose(self):
+        if len(self.shape) < 2:
+            return self
+
+        transposed_data = np.transpose(self.data)
+        return Tensor(transposed_data, dtype=self.dtype)
 
     def __eq__(self, other):
         if isinstance(other, Tensor):
