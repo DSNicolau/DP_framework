@@ -9,8 +9,9 @@ tensor_b = tn.Tensor([-1,4,9])
 
 # print(tensor_a.reshape((3,2)).pow(tensor_b))
 # print(tensor_b.__truediv__(2))
-print(act.activate('relu',tensor_b))
+print(act.activate('ah',tensor_b))
 print(act.relu(tensor_b))
 
-relu = act.activation_dict['ah']
-print(relu.apply(tensor_b))
+activation = act.activation_dict['relu']
+print(activation.apply(tensor_b))
+
