@@ -63,7 +63,9 @@ activation_dict = {
 }
 
 
-def activation(activation_string: str, tensor: Tensor) -> Tensor:
+
+
+def activate(activation_string: str, tensor: Tensor) -> Tensor:
     if activation_string not in activation_dict:
         raise ValueError(f"Invalid activation string: {activation_string}.\n Please see documentation to see implemented activation functions")
     activation_strategy = activation_dict[activation_string]
