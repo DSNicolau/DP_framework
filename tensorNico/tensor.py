@@ -185,6 +185,32 @@ class Tensor:
         if np.any(self.data < 0):
             raise ValueError("Square root operation encountered negative values.")
         return Tensor(np.sqrt(self.data))
+    
+    def abs(self: 'Tensor') -> 'Tensor':
+        return Tensor(np.abs(self.data))   
+
+    def sign(self: 'Tensor') -> 'Tensor':
+        return Tensor(np.sign(self.data)) 
+    
+    def ceil(self: 'Tensor') -> 'Tensor':
+        return Tensor(np.ceil(self.data))
+    
+    def floor(self: 'Tensor') -> 'Tensor':
+        return Tensor(np.floor(self.data))
+    
+    def mod(self: 'Tensor', divisor: int or float) -> 'Tensor':
+        if isinstance(divisor, Tensor):
+            broadcast_shape = self._broadcastable(divisor)
+            if broadcast_shape is None:
+                raise ValueError("Divisor dimensions are not compatible with tensor.")
+            return Tensor(np.mod(self.data, divisor.data))
+        else:
+            return Tensor(np.mod(self.data, divisor))
+    
+    def clip(self: 'Tensor', min_value: float, max_value: float) -> 'Tensor':
+        if min_value > max_value:
+            raise ValueError("Minimum value must be less than or equal to maximum value.")
+        return Tensor(np.clip(self.data, min_value, max_value))
 
     def dot(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         if isinstance(other, Tensor):
