@@ -181,6 +181,11 @@ class Tensor:
             print("Warning: Logarithm operation found non-positive values. Results may be invalid.")
         return Tensor(np.log(np.maximum(self.data, np.finfo(self.dtype).tiny)))
     
+    def sqrt(self: 'Tensor') -> 'Tensor':
+        if np.any(self.data < 0):
+            raise ValueError("Square root operation encountered negative values.")
+        return Tensor(np.sqrt(self.data))
+
     def dot(self: 'Tensor', other: 'Tensor') -> 'Tensor':
         if isinstance(other, Tensor):
             result = np.dot(self.data, other.data)
